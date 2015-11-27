@@ -329,13 +329,13 @@ abb_iter_t *abb_iter_in_crear(const abb_t *arbol)
 	if(arbol->cant_elementos){
 		pila_apilar(iterador->pila_inorder,(void*)arbol);
 
-		abb_t* tmp = arbol->rama_izq;
+		abb_t* tmp = arbol->rama_der;
 
 		/*apilamos todos los izquierdos*/
 		while( tmp )
 		{
 			pila_apilar(iterador->pila_inorder, tmp);
-			tmp = tmp->rama_izq;
+			tmp = tmp->rama_der;
 		}
 	}
 	return iterador;
@@ -349,12 +349,12 @@ bool abb_iter_in_avanzar(abb_iter_t *iter)
 		return false;
 	}
 	abb_t* desapilado = pila_desapilar(iter->pila_inorder);
-	abb_t* tmp = desapilado->rama_der;
+	abb_t* tmp = desapilado->rama_izq;
 
 	while( tmp )
 	{
 		pila_apilar(iter->pila_inorder, tmp);
-		tmp = tmp->rama_izq;
+		tmp = tmp->rama_der;
 	}
 	return true;
 }
