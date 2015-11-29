@@ -9,6 +9,8 @@ struct _nodo
 {
 	char *clave;
 	void *dato;
+	struct _nodo *rama_izq, *rama_der;
+
 };
 
 typedef struct _nodo nodo_t;
@@ -16,7 +18,6 @@ typedef struct _nodo nodo_t;
 struct abb
 {
 	nodo_t* raiz;
-	struct abb *rama_izq, *rama_der;
 	abb_comparar_clave_t f_comparacion;
 	abb_destruir_dato_t f_destrucion;
 	size_t cant_elementos;
@@ -45,14 +46,14 @@ abb_t* abb_crear(abb_comparar_clave_t cmp, abb_destruir_dato_t destruir_dato)
 	arbol->raiz->dato = NULL;
 	arbol->f_comparacion = cmp;
 	arbol->f_destrucion = destruir_dato;
-	arbol->rama_izq = NULL;
-	 arbol->rama_der = NULL;
+	arbol->raiz->rama_izq = NULL;
+	 arbol->raiz->rama_der = NULL;
 	arbol->cant_elementos = 0;
 
 	return arbol;
 }
 
-bool _abb_guardar(abb_t *arbol, const char *clave, void *dato)
+bool _abb_guardar(abb_t *arbol,nodo_t* nodo, const char *clave, void *dato)
 {
 	char* copia_clave;
 	if( !arbol->cant_elementos ) /* primer elemento que agregamos?*/
@@ -63,163 +64,150 @@ bool _abb_guardar(abb_t *arbol, const char *clave, void *dato)
 		arbol->cant_elementos=1;
 		return true;
 	}
-	bool nodo_creado=true;
-	int comparacion=arbol->f_comparacion(clave, arbol->raiz->clave);
+	int comparacion=arbol->f_comparacion(clave,nodo->clave);
 	if(comparacion==0){
 		if(arbol->f_destrucion){
-			arbol->f_destrucion(arbol->raiz->dato);
+			arbol->f_destrucion(nodo->dato);
 		}
-		arbol->raiz->dato=dato;
-		nodo_creado=false;
+		nodo->dato=dato;
+		arbol->cant_elementos++;
 	}
 	else if(comparacion > 0){
-		if(arbol->rama_izq==NULL){
-			abb_t* nuevo_hijo=abb_crear(arbol->f_comparacion,arbol->f_destrucion);
+		if(nodo->rama_izq==NULL){
+			nodo_t* nuevo_hijo=malloc(sizeof(nodo_t));
 			if(!nuevo_hijo){
 				return false;
 			}
-			nuevo_hijo->cant_elementos=1;
 			copia_clave = strdup(clave);
-			nuevo_hijo->raiz->clave=copia_clave;
-			nuevo_hijo->raiz->dato=dato;
-			arbol->rama_izq = nuevo_hijo;
+			nuevo_hijo->clave=copia_clave;
+			nuevo_hijo->dato=dato;
+			nodo->rama_izq = nuevo_hijo;
+			arbol->cant_elementos++;
+
 		}
 		else{
-			nodo_creado=_abb_guardar(arbol->rama_izq,clave, dato);
+			_abb_guardar(arbol,nodo->rama_izq,clave, dato);
 		}
 
 	}
 	else if( comparacion < 0 )
 	{
-		if(arbol->rama_der==NULL){
-			abb_t* nuevo_hijo= abb_crear(arbol->f_comparacion,arbol->f_destrucion);
+		if(nodo->rama_der==NULL){
+			nodo_t* nuevo_hijo=malloc(sizeof(nodo_t));
 			if(!nuevo_hijo){
 				return false;
 			}
-			nuevo_hijo->cant_elementos=1;
 			copia_clave = strdup(clave);
-			nuevo_hijo->raiz->clave=copia_clave;
-			nuevo_hijo->raiz->dato=dato;
-			arbol->rama_der = nuevo_hijo;
+			nuevo_hijo->clave=copia_clave;
+			nuevo_hijo->dato=dato;
+			nodo->rama_der = nuevo_hijo;
+			arbol->cant_elementos++;
 		}
 		else{
-			nodo_creado=_abb_guardar(arbol->rama_der, clave, dato);
+			_abb_guardar(arbol,nodo->rama_der, clave, dato);
 		}
 	}
-	if(nodo_creado){
-		arbol->cant_elementos++;
-	}
-	return nodo_creado;
+	return true;
+
 }
 
 bool abb_guardar(abb_t* arbol,const char* clave, void* dato){
-	_abb_guardar(arbol,clave,dato);
+	_abb_guardar(arbol,arbol->raiz,clave,dato);
 	return true;
 }
-void* abb_borrar_recursivo(abb_t** arbol_p, const char* clave,pila_t* camino_recorrido){
-	abb_t* arbol = *arbol_p;
+void* abb_borrar_recursivo(abb_t* arbol,nodo_t* nodo, const char* clave,pila_t* camino_recorrido){
 	void *dato;
 	if(!arbol){
 		return NULL;
 	}
-	int comparacion=arbol->f_comparacion(clave, arbol->raiz->clave);
+	int comparacion=arbol->f_comparacion(clave, nodo->clave);
 	if( comparacion >  0 ){
-		pila_apilar(camino_recorrido,arbol);
-		dato=abb_borrar_recursivo(&arbol->rama_izq, clave,camino_recorrido);
+		pila_apilar(camino_recorrido,nodo);
+		abb_borrar_recursivo(arbol,nodo->rama_izq, clave,camino_recorrido);
 		pila_desapilar(camino_recorrido);
-		if(dato){
-			arbol->cant_elementos--;
-		}
 	}
 	else if( comparacion < 0 ){
 		pila_apilar(camino_recorrido,arbol);
-		dato=abb_borrar_recursivo(&arbol->rama_der, clave,camino_recorrido);
+		abb_borrar_recursivo(arbol,nodo->rama_der, clave,camino_recorrido);
 		pila_desapilar(camino_recorrido);
-		if(dato){
-			arbol->cant_elementos--;
-		}
+
 	}
 	else{
 	 //caso en que este es el nodo que corresponde borrar
 
-		if( !arbol->rama_izq && !arbol->rama_der ){
+		if( !nodo->rama_izq && !nodo->rama_der ){
 			// Arbol no tiene ningun hijo izquierdo ni derecho
-			dato = arbol->raiz->dato;
+			dato = nodo->dato;
 			if(!pila_esta_vacia(camino_recorrido)){
-				abb_t* padre= pila_desapilar(camino_recorrido);
-				if(padre->rama_izq==arbol){
+				nodo_t* padre= pila_desapilar(camino_recorrido);
+				if(padre->rama_izq==nodo){
 					padre->rama_izq=NULL;
 				}
-				else if(padre->rama_der==arbol){
+				else if(padre->rama_der==nodo){
 					padre->rama_der=NULL;
 				}
-				free(arbol->raiz->clave);
-				free(arbol->raiz);
-				free(arbol);
+				free(nodo->clave);
+				free(nodo);
 			}
 			else{
 				//caso en que el nodo es la raiz
-				free(arbol->raiz->clave);
+				free(nodo->clave);
 				arbol->raiz->dato=NULL;
 				arbol->cant_elementos=0;
 
 			}
 		}
-		else if( (!arbol->rama_izq && arbol->rama_der) || (arbol->rama_izq && !arbol->rama_der) )
+		else if( (!nodo->rama_izq && nodo->rama_der) || (nodo->rama_izq && !nodo->rama_der) )
 		{
 
 			// tiene un hijo, necesitamos reemplazar
 			// si falta la parte derecha, reemplazamos por el izquierdo
 			// Si falta la parte izquierda, reemplazamos por la derecha
-			dato = arbol->raiz->dato;
-			abb_t* siguiente;
-			if(arbol->rama_der){
-				siguiente=arbol->rama_der;
+			dato = nodo->dato;
+			nodo_t* siguiente;
+			if(nodo->rama_der){
+				siguiente=nodo->rama_der;
 			}
 			else{
-				siguiente=arbol->rama_izq;
+				siguiente=nodo->rama_izq;
 			}
-			free(arbol->raiz->clave);
-			free(arbol->raiz);
+			free(nodo->clave);
 			if(!pila_esta_vacia(camino_recorrido)){
-				abb_t* padre=pila_desapilar(camino_recorrido);
-				if(padre->rama_izq==arbol){
+				nodo_t* padre=pila_desapilar(camino_recorrido);
+				if(padre->rama_izq==nodo){
 					padre->rama_izq=siguiente;
 				}
-				else if(padre->rama_der==arbol){
+				else if(padre->rama_der==nodo){
 					padre->rama_der=siguiente;
 				}
-				free(arbol);
+				free(nodo);
 			}
-			else{
-				arbol->rama_izq=siguiente->rama_izq;
-				arbol->rama_der=siguiente->rama_der;
-				arbol->raiz=siguiente->raiz;
-				arbol->cant_elementos--;
+			else{ //es la raiz
+				arbol->raiz=siguiente;
 			}
+			arbol->cant_elementos--;
 
 		}
 		else
 		{
-			abb_t* mayor_izq_padre=arbol;
-			abb_t* mayor_izq = arbol->rama_izq;
+			nodo_t* mayor_izq_padre=nodo;
+			nodo_t* mayor_izq = nodo->rama_izq;
 			while(mayor_izq && mayor_izq->rama_der != NULL ){
 				mayor_izq_padre=mayor_izq;
 				mayor_izq = mayor_izq->rama_der;
 			}
-			dato=arbol->raiz->dato;
-			free(arbol->raiz->clave);
-			free(arbol->raiz);
-			arbol->raiz=mayor_izq->raiz;
+			dato=nodo->dato;
+			free(nodo->clave);
+			nodo->dato=mayor_izq->dato;
+			nodo->clave=mayor_izq->clave;
 			arbol->cant_elementos--;
-			if(mayor_izq_padre==arbol){
-				arbol->rama_izq=mayor_izq->rama_izq;
+			if(mayor_izq_padre==nodo){
+				nodo->rama_izq=mayor_izq->rama_izq;
 			}
 			else{
 				mayor_izq_padre->rama_der = mayor_izq->rama_izq;
 			}
 			free(mayor_izq);
-
 		}
 
 	}
@@ -233,24 +221,54 @@ void *abb_borrar(abb_t *arbol, const char *clave)
 		return NULL;
 	}
 	pila_t* camino_recorrido=pila_crear();
-	void* dato=abb_borrar_recursivo(&arbol,clave,camino_recorrido);
+	void* dato=abb_borrar_recursivo(arbol,arbol->raiz,clave,camino_recorrido);
 	pila_destruir(camino_recorrido);
 	return dato;
 }
 
+void* _abb_obtener(const abb_t* arbol, nodo_t* nodo,const char* clave){
+	if ( !nodo){
+		return NULL;
+	}
+	if( arbol->f_comparacion(clave, nodo->clave) > 0 )
+		return _abb_obtener(arbol,nodo->rama_izq, clave);
+	else if( arbol->f_comparacion(clave, nodo->clave) < 0 )
+		return _abb_obtener(arbol,nodo->rama_der, clave);
+	else
+	{
+		void *dato = nodo->dato;
+		return dato;
+	}
+}
+
 void *abb_obtener(const abb_t *arbol, const char *clave)
 {
+
 	if ( !arbol || arbol->cant_elementos==0 ){
 		return NULL;
 	}
 	if( arbol->f_comparacion(clave, arbol->raiz->clave) > 0 )
-		return abb_obtener(arbol->rama_izq, clave);
+		return _abb_obtener(arbol,arbol->raiz->rama_izq, clave);
 	else if( arbol->f_comparacion(clave, arbol->raiz->clave) < 0 )
-		return abb_obtener(arbol->rama_der, clave);
+		return _abb_obtener(arbol,arbol->raiz->rama_der, clave);
 	else
 	{
 		void *dato = arbol->raiz->dato;
 		return dato;
+	}
+}
+bool _abb_pertenece(const abb_t* arbol, nodo_t* nodo, const char* clave){
+	if ( !nodo ){
+		return false;
+	}
+	int comparacion=arbol->f_comparacion(clave, nodo->clave);
+	if( comparacion > 0 )
+		return _abb_pertenece(arbol,nodo->rama_izq, clave);
+	else if( comparacion< 0 )
+		return _abb_pertenece(arbol,nodo->rama_der, clave);
+	else
+	{
+		return true;
 	}
 }
 
@@ -261,9 +279,9 @@ bool abb_pertenece(const abb_t *arbol, const char *clave)
 	}
 	int comparacion=arbol->f_comparacion(clave, arbol->raiz->clave);
 	if( comparacion > 0 )
-		return abb_pertenece(arbol->rama_izq, clave);
+		return _abb_pertenece(arbol,arbol->raiz->rama_izq, clave);
 	else if( comparacion< 0 )
-		return abb_pertenece(arbol->rama_der, clave);
+		return _abb_pertenece(arbol,arbol->raiz->rama_der, clave);
 	else
 	{
 		return true;
@@ -274,15 +292,29 @@ size_t abb_cantidad(abb_t *arbol)
 {
 	return arbol->cant_elementos;
 }
+void _abb_destruir(abb_t* arbol, nodo_t* nodo){
+	if( !nodo ){
+		return;
+	}
 
+	_abb_destruir(arbol,nodo->rama_izq);
+	_abb_destruir(arbol,nodo->rama_der);
+
+
+		if(arbol->f_destrucion ){
+			arbol->f_destrucion(arbol->raiz->dato);
+		}
+	free(nodo->clave);
+	free(nodo);
+}
 void abb_destruir(abb_t *arbol)
 {
 	if( !arbol ){
 		return;
 	}
 
-	abb_destruir(arbol->rama_izq);
-	abb_destruir(arbol->rama_der);
+	_abb_destruir(arbol,arbol->raiz->rama_izq);
+	_abb_destruir(arbol,arbol->raiz->rama_der);
 
 	if(arbol->cant_elementos){
 		free(arbol->raiz->clave);
@@ -293,22 +325,21 @@ void abb_destruir(abb_t *arbol)
 	free(arbol->raiz);
 	free(arbol);
 }
-
+void _abb_in_order(nodo_t* nodo, bool visitar(const char *, void *, void *), void *extra ){
+	if( nodo )
+	{
+		_abb_in_order(nodo->rama_izq, visitar, extra);
+		visitar(nodo->clave, nodo->dato, extra);
+		_abb_in_order(nodo->rama_der, visitar, extra);
+	}
+}
 void abb_in_order(abb_t *arbol, bool visitar(const char *, void *, void *), void *extra)
 {
 	if( arbol )
 	{
-		abb_in_order(arbol->rama_izq, visitar, extra);
+		_abb_in_order(arbol->raiz->rama_izq, visitar, extra);
 		visitar(arbol->raiz->clave, arbol->raiz->dato, extra);
-		abb_in_order(arbol->rama_der, visitar, extra);
-	}
-}
-void abb_pre_order(abb_t *arbol, bool visitar(const char *, void *, void *),void* extra){
-	if( arbol )
-	{
-		visitar(arbol->raiz->clave, arbol->raiz->dato, extra);
-		abb_in_order(arbol->rama_izq, visitar, extra);
-		abb_in_order(arbol->rama_der, visitar, extra);
+		_abb_in_order(arbol->raiz->rama_der, visitar, extra);
 	}
 }
 
@@ -327,11 +358,11 @@ abb_iter_t *abb_iter_in_crear(const abb_t *arbol)
 		return NULL;
 	}
 	if(arbol->cant_elementos){
-		pila_apilar(iterador->pila_inorder,(void*)arbol);
+		pila_apilar(iterador->pila_inorder,(void*)arbol->raiz);
 
-		abb_t* tmp = arbol->rama_der;
+		nodo_t* tmp = arbol->raiz->rama_der;
 
-		/*apilamos todos los izquierdos*/
+		/*apilamos todos los derechos*/
 		while( tmp )
 		{
 			pila_apilar(iterador->pila_inorder, tmp);
@@ -348,8 +379,8 @@ bool abb_iter_in_avanzar(abb_iter_t *iter)
 	if(abb_iter_in_al_final(iter)){
 		return false;
 	}
-	abb_t* desapilado = pila_desapilar(iter->pila_inorder);
-	abb_t* tmp = desapilado->rama_izq;
+	nodo_t* desapilado = pila_desapilar(iter->pila_inorder);
+	nodo_t* tmp = desapilado->rama_izq;
 
 	while( tmp )
 	{
@@ -362,8 +393,8 @@ const char *abb_iter_in_ver_actual(const abb_iter_t *iter)
 {
 	if( abb_iter_in_al_final(iter) )
 		return NULL;
-	abb_t* abb_actual=pila_ver_tope(iter->pila_inorder);
-	return abb_actual->raiz->clave;
+	nodo_t* nodo_actual=pila_ver_tope(iter->pila_inorder);
+	return nodo_actual->clave;
 }
 
 void abb_iter_in_destruir(abb_iter_t* iter){
