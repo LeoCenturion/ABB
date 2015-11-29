@@ -51,13 +51,45 @@ void prueba_abb_vacio(void){
     abb_destruir(arbol);
 
 }
+void prueba_abb_clave_vacia(void){
+    printf("CLAVE VACIA:\n");
+    abb_t* arbol = abb_crear(strcmp,NULL);
+    char* clave ="";
+    int valor = 5;
+    print_test("Guardar clave vacia...",abb_guardar(arbol,clave,&valor));
+    print_test("Tamanio correcto...",abb_cantidad(arbol)==1);
+    print_test("Clave pertenece...",abb_pertenece(arbol,clave));
+    print_test("Obtener valor...",abb_obtener(arbol,clave)==&valor);
+    print_test("Borrar clave...",abb_borrar(arbol,clave)==&valor);
+    char* clave_2="no_vacia";
+    int valor_2=3;
+    abb_guardar(arbol,clave,&valor);
+    print_test("guardar clave no vacia...",abb_guardar(arbol,clave_2,&valor_2));
+    print_test("Tamanio correcto...",abb_cantidad(arbol)==2);
+    print_test("Clave vacia pertenece...",abb_pertenece(arbol,clave));
+    print_test("Obtener valor clave vacia...",abb_obtener(arbol,clave)==&valor);
+    print_test("Clave no vacia pertenece...",abb_pertenece(arbol,clave_2));
+    print_test("Obtener valor clave no vacia...",abb_obtener(arbol,clave_2)==&valor_2);
+    print_test("Borrar clave no vacia...",abb_borrar(arbol,clave_2)==&valor_2);
+    print_test("Borrar clave  vacia...",abb_borrar(arbol,clave)==&valor);
+    printf("CLAVE NULL");
+    clave =NULL;
+    print_test("Guardar clave vacia...",abb_guardar(arbol,clave,&valor));
+    print_test("Tamanio correcto...",abb_cantidad(arbol)==1);
+    print_test("Clave pertenece...",abb_pertenece(arbol,clave));
+    print_test("Obtener valor...",abb_obtener(arbol,clave)==&valor);
+    print_test("Borrar clave...",abb_borrar(arbol,clave)==&valor);
+    abb_destruir(arbol);
+
+}
 void prueba_abb_guardar_borrar(void){
+    abb_t* arbol = abb_crear(strcmp,NULL);
+
     printf("GUARDAR Y BORRAR:\n");
     printf("GUARDAR:\n");
     int elementos[] = {0,1,2,3,4,5,6,7,8,9};
     char* claves[] = {"cero","uno","dos","tres","cuatro","cinco","seis",
                     "siete","ocho","nueve"};
-    abb_t* arbol = abb_crear(strcmp,NULL);
     for(int i=0;i<10;i++){
         print_test("Guardar entero...",abb_guardar(arbol,claves[i],&elementos[i]));
     }
@@ -194,6 +226,7 @@ void prueba_volumen(void){
 void pruebas_abb_alumno(void){
     prueba_abb_vacio();
     prueba_abb_guardar_borrar();
+    prueba_abb_clave_vacia();
     prueba_iterador();
     prueba_volumen();
     //probar_abb_borrar("JAHBGICFDE", NULL);  // Da OK

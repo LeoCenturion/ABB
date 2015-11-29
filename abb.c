@@ -261,9 +261,9 @@ bool abb_pertenece(const abb_t *arbol, const char *clave)
 	}
 	int comparacion=arbol->f_comparacion(clave, arbol->raiz->clave);
 	if( comparacion > 0 )
-		return abb_obtener(arbol->rama_izq, clave);
+		return abb_pertenece(arbol->rama_izq, clave);
 	else if( comparacion< 0 )
-		return abb_obtener(arbol->rama_der, clave);
+		return abb_pertenece(arbol->rama_der, clave);
 	else
 	{
 		return true;
