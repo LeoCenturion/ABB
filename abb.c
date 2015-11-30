@@ -28,6 +28,7 @@ struct abb_iter
 	pila_t* pila_inorder;
 };
 
+
 /* establecemos que f_comparacion devuelve 1 si es mayor
  * y -1 si el dato es menor */
 
@@ -72,7 +73,7 @@ bool _abb_guardar(abb_t *arbol,nodo_t* nodo, const char *clave, void *dato)
 		nodo->dato=dato;
 		arbol->cant_elementos++;
 	}
-	else if(comparacion > 0){
+	else if(comparacion < 0){
 		if(nodo->rama_izq==NULL){
 			nodo_t* nuevo_hijo=malloc(sizeof(nodo_t));
 			if(!nuevo_hijo){
@@ -90,8 +91,7 @@ bool _abb_guardar(abb_t *arbol,nodo_t* nodo, const char *clave, void *dato)
 		}
 
 	}
-	else if( comparacion < 0 )
-	{
+	else if( comparacion > 0 ){
 		if(nodo->rama_der==NULL){
 			nodo_t* nuevo_hijo=malloc(sizeof(nodo_t));
 			if(!nuevo_hijo){
@@ -117,18 +117,18 @@ bool abb_guardar(abb_t* arbol,const char* clave, void* dato){
 }
 void* abb_borrar_recursivo(abb_t* arbol,nodo_t* nodo, const char* clave,pila_t* camino_recorrido){
 	void *dato;
-	if(!arbol){
+	if(!nodo){
 		return NULL;
 	}
 	int comparacion=arbol->f_comparacion(clave, nodo->clave);
-	if( comparacion >  0 ){
+	if( comparacion <  0 ){
 		pila_apilar(camino_recorrido,nodo);
-		abb_borrar_recursivo(arbol,nodo->rama_izq, clave,camino_recorrido);
+		dato=abb_borrar_recursivo(arbol,nodo->rama_izq, clave,camino_recorrido);
 		pila_desapilar(camino_recorrido);
 	}
-	else if( comparacion < 0 ){
+	else if( comparacion > 0 ){
 		pila_apilar(camino_recorrido,arbol);
-		abb_borrar_recursivo(arbol,nodo->rama_der, clave,camino_recorrido);
+		dato=abb_borrar_recursivo(arbol,nodo->rama_der, clave,camino_recorrido);
 		pila_desapilar(camino_recorrido);
 
 	}
@@ -146,6 +146,7 @@ void* abb_borrar_recursivo(abb_t* arbol,nodo_t* nodo, const char* clave,pila_t* 
 				else if(padre->rama_der==nodo){
 					padre->rama_der=NULL;
 				}
+				arbol->cant_elementos--;
 				free(nodo->clave);
 				free(nodo);
 			}
@@ -181,6 +182,7 @@ void* abb_borrar_recursivo(abb_t* arbol,nodo_t* nodo, const char* clave,pila_t* 
 					padre->rama_der=siguiente;
 				}
 				free(nodo);
+
 			}
 			else{ //es la raiz
 				arbol->raiz=siguiente;
@@ -208,6 +210,8 @@ void* abb_borrar_recursivo(abb_t* arbol,nodo_t* nodo, const char* clave,pila_t* 
 				mayor_izq_padre->rama_der = mayor_izq->rama_izq;
 			}
 			free(mayor_izq);
+			arbol->cant_elementos--;
+
 		}
 
 	}
@@ -230,9 +234,9 @@ void* _abb_obtener(const abb_t* arbol, nodo_t* nodo,const char* clave){
 	if ( !nodo){
 		return NULL;
 	}
-	if( arbol->f_comparacion(clave, nodo->clave) > 0 )
+	if( arbol->f_comparacion(clave, nodo->clave) < 0 )
 		return _abb_obtener(arbol,nodo->rama_izq, clave);
-	else if( arbol->f_comparacion(clave, nodo->clave) < 0 )
+	else if( arbol->f_comparacion(clave, nodo->clave) > 0 )
 		return _abb_obtener(arbol,nodo->rama_der, clave);
 	else
 	{
@@ -247,9 +251,9 @@ void *abb_obtener(const abb_t *arbol, const char *clave)
 	if ( !arbol || arbol->cant_elementos==0 ){
 		return NULL;
 	}
-	if( arbol->f_comparacion(clave, arbol->raiz->clave) > 0 )
+	if( arbol->f_comparacion(clave, arbol->raiz->clave) < 0 )
 		return _abb_obtener(arbol,arbol->raiz->rama_izq, clave);
-	else if( arbol->f_comparacion(clave, arbol->raiz->clave) < 0 )
+	else if( arbol->f_comparacion(clave, arbol->raiz->clave) > 0 )
 		return _abb_obtener(arbol,arbol->raiz->rama_der, clave);
 	else
 	{
@@ -262,9 +266,9 @@ bool _abb_pertenece(const abb_t* arbol, nodo_t* nodo, const char* clave){
 		return false;
 	}
 	int comparacion=arbol->f_comparacion(clave, nodo->clave);
-	if( comparacion > 0 )
+	if( comparacion < 0 )
 		return _abb_pertenece(arbol,nodo->rama_izq, clave);
-	else if( comparacion< 0 )
+	else if( comparacion> 0 )
 		return _abb_pertenece(arbol,nodo->rama_der, clave);
 	else
 	{
@@ -278,9 +282,9 @@ bool abb_pertenece(const abb_t *arbol, const char *clave)
 		return false;
 	}
 	int comparacion=arbol->f_comparacion(clave, arbol->raiz->clave);
-	if( comparacion > 0 )
+	if( comparacion < 0 )
 		return _abb_pertenece(arbol,arbol->raiz->rama_izq, clave);
-	else if( comparacion< 0 )
+	else if( comparacion> 0 )
 		return _abb_pertenece(arbol,arbol->raiz->rama_der, clave);
 	else
 	{
