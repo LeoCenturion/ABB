@@ -72,13 +72,7 @@ void prueba_abb_clave_vacia(void){
     print_test("Obtener valor clave no vacia...",abb_obtener(arbol,clave_2)==&valor_2);
     print_test("Borrar clave no vacia...",abb_borrar(arbol,clave_2)==&valor_2);
     print_test("Borrar clave  vacia...",abb_borrar(arbol,clave)==&valor);
-    printf("CLAVE NULL");
-    clave =NULL;
-    print_test("Guardar clave vacia...",abb_guardar(arbol,clave,&valor));
-    print_test("Tamanio correcto...",abb_cantidad(arbol)==1);
-    print_test("Clave pertenece...",abb_pertenece(arbol,clave));
-    print_test("Obtener valor...",abb_obtener(arbol,clave)==&valor);
-    print_test("Borrar clave...",abb_borrar(arbol,clave)==&valor);
+
     abb_destruir(arbol);
 
 }
@@ -120,6 +114,30 @@ void prueba_abb_guardar_borrar(void){
         print_test("Borrar...",abb_borrar(arbol,claves[i])==&elementos[i]);
         print_test("Longitud correcta...",abb_cantidad(arbol)==(9-i));
     }
+    abb_destruir(arbol);
+}
+void prueba_abb_reemplazar(void){
+    abb_t* arbol=abb_crear(strcmp,NULL);
+    int elementos[] = {0,1,2,3,4,5,6,7,8,9};
+    char* claves[] = {"cero","uno","dos","tres","cuatro","cinco","seis",
+                    "siete","ocho","nueve"};
+    for(int i=0;i<10;i++){
+        print_test("Guardar entero...",abb_guardar(arbol,claves[i],&elementos[i]));
+    }
+    print_test("Longitud correcta...",abb_cantidad(arbol)==10);
+    for(int i=0;i<10;i++){
+        int* elemento=abb_obtener(arbol,claves[i]);
+        (*elemento)++;
+        print_test("Modificar entero...",abb_guardar(arbol,claves[i],elemento));
+    }
+    bool ok=true;
+    for(int i=0;i<10;i++){
+        int* elemento=abb_obtener(arbol,claves[i]);
+        if(!(ok=(abb_pertenece(arbol,claves[i])&& i+1==*elemento))){
+            break;
+        }
+    }
+    print_test("Se reemplazaron todos los elementos...",ok);
     abb_destruir(arbol);
 }
 void probar_abb_borrar(char *orden_insercion, char *orden_borrado) {
@@ -226,6 +244,7 @@ void prueba_volumen(void){
 void pruebas_abb_alumno(void){
     prueba_abb_vacio();
     prueba_abb_guardar_borrar();
+    prueba_abb_reemplazar();
     prueba_abb_clave_vacia();
     prueba_iterador();
     prueba_volumen();
